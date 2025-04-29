@@ -7,7 +7,7 @@ import json
 
 from django.http import HttpResponse
 
-@csrf_exempt
+@csrf_exempt  #authentication already handled here
 def summarise_user_prompt(request):
     if request.method == 'POST':
         try:
