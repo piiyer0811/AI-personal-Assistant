@@ -11,10 +11,12 @@
     - Response
    
 - BackEND
-  - Store login token key!
-    - In DB or Cache
-   
-  - 
+  - Expose API "summarise prompt" with request having accessToken, userPrompt
+    -Feed gemini userPrompt+ list of function calls
+    -Call the function suggested by Gemini
+    -Feed it the response to make it user-friendly
+    -Response to frontend
+
 
 
 
