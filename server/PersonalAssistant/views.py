@@ -2,6 +2,8 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
+from personalassistant import firebase_helper
+from personalassistant import decisionengine
 
 # Create your views here.
 
@@ -18,21 +20,44 @@ def summarise_user_prompt(request):
             user_prompt = body.get("user_prompt")
 
             if not all([access_token, id_token, user_prompt]):
-                return JsonResponse({"error": "Missing required fields."}, status=400)
+                return JsonResponse({"message": "Missing required fields."}, status=400)
+            
+            context_history_result= firebase_helper.get_user_context(id_token)
 
-            # TODO: Use access_token to access Google APIs
-            # TODO: Use id_token to verify the user's identity
+            context= []
+
+            if context_history_result:
+                context= context_history_result.get("conversation_history")
+            else:
+                # TODO: Create User context
+                context_creation_result= firebase_helper.create_user_context(id_token)
+                if context_creation_result.get("status") != "success":
+                    return JsonResponse({"message": context_creation_result.get("message")}, status=400)
+
+                context= context_creation_result.get("context")
             # TODO: Use user_prompt with Gemini API or something else
 
+            assistant_reply= decisionengine.decide_and_summarise(access_token,id_token,context,user_prompt)
+
+            context_updation_result = firebase_helper.update_user_context(id_token, context)
+
+            if context_updation_result.get("status") == "error":
+                return JsonResponse({"message": context_updation_result.get("message")}, status=400)
+
+            if not assistant_reply:
+                return JsonResponse({"message": "Unknown Error"}, status=400)
+            
+            if assistant_reply.get("status") == "error":
+                return JsonResponse({"message": assistant_reply.get("message")}, status=400)
+            
+            # TODO: Use access_token to access Google APIs
             return JsonResponse({
                 "message": "Received successfully.",
-                "access_token": access_token,
-                "id_token": id_token,
-                "user_prompt": user_prompt
+               "reply": assistant_reply.get("reply")
             }, status=200)
 
         except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON."}, status=400)
+            return JsonResponse({"message": "Invalid JSON."}, status=400)
 
-    return JsonResponse({"error": "Only POST allowed."}, status=405)
+    return JsonResponse({"message": "Only POST allowed."}, status=405)
 

@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class PersonalassistantConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'PersonalAssistant'
+    name = 'personalassistant'
