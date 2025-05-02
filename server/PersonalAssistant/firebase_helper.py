@@ -35,8 +35,8 @@ def create_user_context(id_token: str):
         preprompt_text = preprompt_doc.to_dict().get("text", "You are a helpful assistant.")
 
         context = [
-            {"role": "system", "content": preprompt_text},
-            {"role": "assistant", "content": greeting_text}
+            {"role": "model", "content": preprompt_text},
+            {"role": "model", "content": greeting_text}
         ]
 
         db.collection("users").document(id_token).set({

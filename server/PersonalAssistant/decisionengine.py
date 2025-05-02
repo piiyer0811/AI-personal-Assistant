@@ -3,6 +3,7 @@ from google.genai import types
 import os
 from personalassistant.schemas import google_calendar
 from personalassistant.functions import google_calendar as google_calendar_functions
+from personalassistant import contextconverter
 import json
 from dotenv import load_dotenv
 
@@ -10,10 +11,27 @@ from dotenv import load_dotenv
 
  # Send request with function declarations
 
+def inject_context_args(function_name, function_args, user_context_meta):
+    # List of functions that require context data
+    functions_that_need_context = ["get_calendar_events"]
+
+    if function_name in functions_that_need_context:
+        function_args["user_email"] = user_context_meta["user_email"]
+        function_args["access_token"] = user_context_meta["access_token"]
+        function_args["time_zone"] = user_context_meta.get("time_zone")
+    
+    return function_args
+
  
 
-def decide_and_summarise(access_token,id_token,context,user_prompt):
+def decide_and_summarise(access_token,id_token,context,user_prompt, email_id,time_zone):
 
+
+    user_context_meta = {
+        "user_email": email_id,
+        "access_token": access_token,
+        "time_zone": time_zone
+    }
 
     load_dotenv()
     # Configure the client and tools
@@ -29,7 +47,7 @@ def decide_and_summarise(access_token,id_token,context,user_prompt):
 # Step 2: Call Gemini to decide what to do
     response = client.models.generate_content(
         model="gemini-2.0-flash",
-        contents=context_object,
+        contents=contextconverter.context_to_contents(context_object),
         config=config,
     )
 
@@ -41,6 +59,10 @@ def decide_and_summarise(access_token,id_token,context,user_prompt):
         function_call = reply.parts[0].function_call
         function_name = function_call.name
         function_args = function_call.args
+
+        # Inject context information if needed
+        function_args = inject_context_args(function_name, function_args, user_context_meta)
+
 
         print(f"Function to call: {function_name}")
         print(f"Arguments: {function_args}")
@@ -61,7 +83,7 @@ def decide_and_summarise(access_token,id_token,context,user_prompt):
         
     # Step 5: Add function call and function response to context    
         context.append({
-            "role": "system",
+            "role": "model",
             "content": {
                 "function_call": {
                     "name": function_name,
@@ -72,7 +94,7 @@ def decide_and_summarise(access_token,id_token,context,user_prompt):
         })
 
         context.append({
-            "role": "system",
+            "role": "model",
             "content": json.dumps(result)  # Function output as JSON string
         })
 
@@ -82,7 +104,7 @@ def decide_and_summarise(access_token,id_token,context,user_prompt):
     # Step 6: Ask Gemini to summarise function result
         summary_response = client.models.generate_content(
             model="gemini-2.0-flash",
-            contents=context_object,
+            contents=contextconverter.context_to_contents(context_object),
             config=config,
         )
 
@@ -93,8 +115,8 @@ def decide_and_summarise(access_token,id_token,context,user_prompt):
 
     # Step 7: If no function is needed, just return Gemini's natural response
     else:
-        context.append({"role": "model", "content": reply.text})
+        context.append({"role": "model", "content": response.text})
         return {
-            "reply": reply.text , 
+            "reply": response.text , 
             "status": "success"
         }

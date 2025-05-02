@@ -7,6 +7,31 @@ def get_calendar_events(user_email, access_token, time_start, time_end, keyword=
     Filters by keyword if provided.
     """
 
+    return {
+            "success": True,
+            "event_count": 3,
+            "events": [
+
+                {
+                    "summary": "Knowledge Discovery in Databases",
+                    "start": "12:15 pm 2nd May 2025",
+                    "end": "13:45 pm 2nd May 2025"
+                },
+                {
+                    "summary": "Human COmputer Interaction",
+                    "start": "14:15 pm 2nd May 2025",
+                    "end": "15:45 pm 2nd May 2025"
+                },
+                {
+                    "summary": "Scientific Visualisation",
+                    "start": "16:00 pm 2nd May 2025",
+                    "end": "17:30 pm 2nd May 2025"
+                }
+
+               
+            ]
+        }
+
     url = f"https://www.googleapis.com/calendar/v3/calendars/{user_email}/events"
     
     headers = {

@@ -18,8 +18,10 @@ def summarise_user_prompt(request):
             access_token = body.get("access_token")
             id_token = body.get("id_token")
             user_prompt = body.get("user_prompt")
+            email_id= body.get("email_id")
+            time_zone=body.get("time_zone")
 
-            if not all([access_token, id_token, user_prompt]):
+            if not all([access_token, id_token, user_prompt, email_id,time_zone]):
                 return JsonResponse({"message": "Missing required fields."}, status=400)
             
             context_history_result= firebase_helper.get_user_context(id_token)
@@ -37,7 +39,7 @@ def summarise_user_prompt(request):
                 context= context_creation_result.get("context")
             # TODO: Use user_prompt with Gemini API or something else
 
-            assistant_reply= decisionengine.decide_and_summarise(access_token,id_token,context,user_prompt)
+            assistant_reply= decisionengine.decide_and_summarise(access_token,id_token,context,user_prompt,email_id,time_zone)
 
             context_updation_result = firebase_helper.update_user_context(id_token, context)
 
